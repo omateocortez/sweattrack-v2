@@ -1,0 +1,159 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Calendar, Filter, Search, Droplets, Clock } from 'lucide-react';
+import { sessionApi } from '../services/api';
+import AppLayout from '../components/layout/AppLayout';
+import Header from '../components/layout/Header';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import Modal from '../components/ui/Modal';
+import SessionCard from '../components/session/SessionCard';
+import { formatDuration, INTENSITY_LABELS } from '../utils/calculations';
+
+const MOCK_SESSIONS = [
+  { id: 1, session_type: 'training', intensity: 'alta',     status: 'completed', duration_minutes: 45, sweat_rate_lh: 1.6, created_at: new Date(Date.now() - 86400000).toISOString() },
+  { id: 2, session_type: 'training', intensity: 'moderada', status: 'completed', duration_minutes: 75, sweat_rate_lh: 1.2, created_at: new Date(Date.now() - 172800000).toISOString() },
+  { id: 3, session_type: 'match',    intensity: 'alta',     status: 'completed', duration_minutes: 90, sweat_rate_lh: 1.8, created_at: new Date(Date.now() - 259200000).toISOString() },
+  { id: 4, session_type: 'recovery', intensity: 'baixa',    status: 'completed', duration_minutes: 30, sweat_rate_lh: 0.5, created_at: new Date(Date.now() - 345600000).toISOString() },
+  { id: 5, session_type: 'training', intensity: 'variada',  status: 'completed', duration_minutes: 150, sweat_rate_lh: 1.3, created_at: new Date(Date.now() - 432000000).toISOString() },
+];
+
+export default function History() {
+  const navigate = useNavigate();
+  const [sessions, setSessions] = useState(MOCK_SESSIONS);
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [showFilter, setShowFilter] = useState(false);
+
+  useEffect(() => {
+    sessionApi.list()
+      .then((r) => { if (r.data.length) setSessions(r.data); })
+      .catch(() => {});
+  }, []);
+
+  const filtered = sessions.filter((s) => {
+    if (filter !== 'all' && s.intensity !== filter) return false;
+    if (search && !s.session_type.includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  // Stats
+  const totalMin = sessions.reduce((s, x) => s + (x.duration_minutes || 0), 0);
+  const avgSweat = sessions.length
+    ? (sessions.reduce((s, x) => s + (x.sweat_rate_lh || 0), 0) / sessions.length).toFixed(2)
+    : 0;
+
+  return (
+    <AppLayout>
+      <Header title="Histórico" actions={
+        <button
+          onClick={() => setShowFilter(true)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-white/50 hover:text-white px-3 py-1.5 rounded-xl bg-surface-2 border border-border transition-colors"
+        >
+          <Filter size={13} /> Filtrar
+        </button>
+      } />
+      <div className="page-container md:max-w-2xl">
+        <div className="space-y-5">
+
+          {/* Summary cards */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { icon: <Calendar size={15} className="text-primary" />, val: sessions.length, label: 'Sessões' },
+              { icon: <Clock size={15} className="text-sky-400" />, val: formatDuration(totalMin), label: 'Total' },
+              { icon: <Droplets size={15} className="text-amber-400" />, val: `${avgSweat}L/h`, label: 'Média suor' },
+            ].map(({ icon, val, label }) => (
+              <Card key={label} className="text-center p-3">
+                <div className="flex justify-center mb-1">{icon}</div>
+                <p className="font-black text-sm">{val}</p>
+                <p className="text-[10px] text-white/30">{label}</p>
+              </Card>
+            ))}
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+            <input
+              type="text"
+              placeholder="Buscar sessões..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input-field pl-9 text-sm"
+            />
+          </div>
+
+          {/* Filter chips */}
+          <div className="flex gap-2 no-scrollbar overflow-x-auto pb-1">
+            {['all', 'baixa', 'moderada', 'alta', 'variada'].map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  filter === f
+                    ? 'bg-primary text-white'
+                    : 'bg-surface-2 text-white/40 hover:text-white border border-border'
+                }`}
+              >
+                {f === 'all' ? 'Todas' : INTENSITY_LABELS[f]}
+              </button>
+            ))}
+          </div>
+
+          {/* Session list */}
+          <div className="space-y-2">
+            {filtered.length === 0 ? (
+              <div className="text-center py-12 text-white/30 text-sm">
+                Nenhuma sessão encontrada
+              </div>
+            ) : (
+              filtered.map((s, i) => (
+                <motion.div
+                  key={s.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                >
+                  <SessionCard
+                    session={s}
+                    onClick={() =>
+                      s.status === 'completed'
+                        ? navigate(`/post-session/${s.id}`)
+                        : navigate(`/pre-session/${s.id}`)
+                    }
+                  />
+                  {s.sweat_rate_lh && (
+                    <p className="text-[11px] text-white/30 px-3 pb-1">
+                      Taxa sudorese: <span className="text-white/50 font-semibold">{s.sweat_rate_lh} L/h</span>
+                    </p>
+                  )}
+                </motion.div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Filter modal */}
+      <Modal open={showFilter} onClose={() => setShowFilter(false)} title="Filtrar Sessões">
+        <div className="space-y-3">
+          <p className="text-sm text-white/50">Intensidade</p>
+          {['all', 'baixa', 'moderada', 'alta', 'variada'].map((f) => (
+            <button
+              key={f}
+              onClick={() => { setFilter(f); setShowFilter(false); }}
+              className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                filter === f
+                  ? 'bg-primary text-white'
+                  : 'bg-surface-2 text-white/50 hover:bg-surface-3'
+              }`}
+            >
+              {f === 'all' ? 'Todas' : INTENSITY_LABELS[f]}
+            </button>
+          ))}
+        </div>
+      </Modal>
+    </AppLayout>
+  );
+}
