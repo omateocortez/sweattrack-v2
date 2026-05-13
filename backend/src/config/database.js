@@ -10,10 +10,17 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   timezone: '-03:00',
+  connectTimeout: 10000,
 });
 
 pool.getConnection()
   .then(conn => { console.log('✅ MySQL connected'); conn.release(); })
-  .catch(err => console.error('❌ MySQL connection failed:', err.message));
+  .catch(err => {
+    console.error(
+      '❌ MySQL connection failed:',
+      err.code || 'UNKNOWN',
+      err.message || 'No error message returned by driver'
+    );
+  });
 
 module.exports = pool;

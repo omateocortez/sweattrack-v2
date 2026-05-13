@@ -7,6 +7,36 @@ const signToken = (userId, role) =>
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
 
+const handleAuthError = (res, err, action) => {
+  const dbUnavailableCodes = new Set([
+    'ECONNREFUSED',
+    'ENOTFOUND',
+    'ETIMEDOUT',
+    'PROTOCOL_CONNECTION_LOST',
+  ]);
+
+  const configCodes = new Set([
+    'ER_ACCESS_DENIED_ERROR',
+    'ER_BAD_DB_ERROR',
+  ]);
+
+  console.error(`[auth:${action}]`, err.code || 'UNKNOWN', err.message || err);
+
+  if (dbUnavailableCodes.has(err.code)) {
+    return res.status(503).json({
+      error: 'Banco de dados indisponível. Verifique se o MySQL está ligado.',
+    });
+  }
+
+  if (configCodes.has(err.code)) {
+    return res.status(500).json({
+      error: 'Configuração do banco inválida. Revise o arquivo .env do backend.',
+    });
+  }
+
+  return res.status(500).json({ error: 'Erro interno do servidor' });
+};
+
 exports.register = async (req, res) => {
   try {
     const { name, email, password, role = 'athlete', clinicName } = req.body;
@@ -28,8 +58,7 @@ exports.register = async (req, res) => {
     const token = signToken(userId, role);
     res.status(201).json({ token, user: { id: userId, name, email, role, clinicName } });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    return handleAuthError(res, err, 'register');
   }
 };
 
@@ -63,15 +92,14 @@ exports.login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    return handleAuthError(res, err, 'login');
   }
 };
 
 exports.me = async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT u.id, u.name, u.email, u.role, u.clinic_name, u.avatar_url, u.created_at,
+      `SELECT u.id, u.name, u.email, u.role, u.clinic_name, u.avatar AS avatar_url, u.created_at,
               ap.height_cm, ap.weight_kg, ap.sport, ap.birth_date, ap.gender, ap.vo2max
        FROM users u
        LEFT JOIN athlete_profiles ap ON ap.user_id = u.id

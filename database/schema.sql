@@ -17,6 +17,12 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Compatibilidade com bancos locais de versões anteriores
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS clinic_name VARCHAR(150) NULL AFTER role,
+  ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500) NULL AFTER clinic_name,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at;
+
 -- Athlete profiles
 CREATE TABLE IF NOT EXISTS athlete_profiles (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -135,11 +141,21 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- Seed a demo user (password: demo1234)
-INSERT IGNORE INTO users (name, email, password_hash, role, clinic_name)
-VALUES (
+UPDATE users
+SET
+  name = 'Dr. Silva',
+  password_hash = '$2b$10$R.9DM6usOhPhXS3OzMcxL.aZFaz77JI7kMgy4JNOwArimNGapOcHC',
+  role = 'doctor',
+  clinic_name = 'São Camilo'
+WHERE email = 'demo@sweattrack.com';
+
+INSERT INTO users (name, email, password_hash, role, clinic_name)
+SELECT
   'Dr. Silva',
   'demo@sweattrack.com',
-  '$2b$10$K7L/OM2FzJKKJzJKKJzJKu3gQhR9xGVYvMHJTaWbFOZvqoY3GCBK6',
+  '$2b$10$R.9DM6usOhPhXS3OzMcxL.aZFaz77JI7kMgy4JNOwArimNGapOcHC',
   'doctor',
   'São Camilo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM users WHERE email = 'demo@sweattrack.com'
 );
