@@ -1,7 +1,19 @@
-# Sweat-Track v2
+# 💧 SweatTrack v2
 
-Plataforma clínica de monitoramento de hidratação e performance esportiva.  
-Tecnologia São Camilo — baseada em evidências científicas.
+> Plataforma clínica full-stack de monitoramento de hidratação e performance esportiva, desenvolvida em parceria com o Centro Universitário São Camilo — baseada em diretrizes científicas de nutrição esportiva.
+
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind-CSS-06B6D4?logo=tailwindcss&logoColor=white)
+![JWT](https://img.shields.io/badge/Auth-JWT-000000?logo=jsonwebtokens&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+
+---
+
+## Sobre o projeto
+
+SweatTrack v2 é uma aplicação web clínica que auxilia profissionais de saúde e atletas no controle preciso da hidratação antes, durante e após atividades físicas. O sistema calcula taxa de sudorese, déficit hídrico e protocolo de reidratação personalizado com base em dados fisiológicos do atleta — substituindo planilhas manuais por um fluxo clínico guiado e em tempo real.
 
 ---
 
@@ -182,3 +194,11 @@ Perda de sódio (mg)   = Suor_total_ml × 0.50  (~50 mg/100ml)
 
 Baseado nas diretrizes:  
 *Quaresma et al., 2025 — Nutrição Esportiva Guidelines (MAUA/São Camilo)*
+
+---
+
+## Autor
+
+**Mateo Vuolo Cortez** — [github.com/omateocortez](https://github.com/omateocortez) · [linkedin.com/in/omateocortez](https://linkedin.com/in/omateocortez)
+
+Desenvolvido como projeto de extensão em parceria com o Centro Universitário São Camilo.
