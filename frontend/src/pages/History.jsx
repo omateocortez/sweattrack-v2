@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, Filter, Search, Droplets, Clock } from 'lucide-react';
+import { Calendar, Filter, Search, Droplets, Clock, Activity, Plus } from 'lucide-react';
 import { sessionApi } from '../services/api';
 import AppLayout from '../components/layout/AppLayout';
 import Header from '../components/layout/Header';
@@ -21,16 +21,20 @@ const MOCK_SESSIONS = [
 
 export default function History() {
   const navigate = useNavigate();
-  const [sessions, setSessions] = useState(MOCK_SESSIONS);
+  const [sessions, setSessions] = useState([]);
+  const [loaded, setLoaded] = useState(false);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [showFilter, setShowFilter] = useState(false);
 
   useEffect(() => {
     sessionApi.list()
-      .then((r) => { if (r.data.length) setSessions(r.data); })
-      .catch(() => {});
+      .then((r) => setSessions(r.data))
+      .catch(() => {})
+      .finally(() => setLoaded(true));
   }, []);
+
+  const isVirgin = loaded && sessions.length === 0;
 
   const filtered = sessions.filter((s) => {
     if (filter !== 'all' && s.intensity !== filter) return false;
@@ -103,7 +107,25 @@ export default function History() {
 
           {/* Session list */}
           <div className="space-y-2">
-            {filtered.length === 0 ? (
+            {isVirgin ? (
+              <div className="flex flex-col items-center justify-center py-14 gap-4 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-surface-2 flex items-center justify-center">
+                  <Activity size={26} className="text-white/20" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white/60">Histórico vazio</p>
+                  <p className="text-xs text-white/30 mt-1 max-w-[220px] mx-auto leading-relaxed">
+                    Suas sessões de treino e monitoramento aparecerão aqui após você criar a primeira.
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="inline-flex items-center gap-2 text-xs font-bold text-primary hover:opacity-80 transition-opacity"
+                >
+                  <Plus size={13} /> Ir para o dashboard
+                </button>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="text-center py-12 text-white/30 text-sm">
                 Nenhuma sessão encontrada
               </div>

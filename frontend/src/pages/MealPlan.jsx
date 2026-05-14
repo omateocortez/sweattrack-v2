@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Utensils, Trash2, ChevronDown, ChevronUp, Flame } from 'lucide-react';
+import { Plus, Utensils, ChevronDown, ChevronUp, Flame } from 'lucide-react';
 import { mealApi } from '../services/api';
 import AppLayout from '../components/layout/AppLayout';
 import Header from '../components/layout/Header';
@@ -131,14 +131,19 @@ function MealSection({ meal, onDelete }) {
 
 export default function MealPlan() {
   const toast = useToast();
-  const [meals, setMeals] = useState(SAMPLE_PLAN);
-  const [plans, setPlans] = useState([]);
+  const [meals, setMeals] = useState([]);
+  const [loaded, setLoaded] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [newFood, setNewFood] = useState({ name: '', quantity: '', unit: 'g', calories: '', mealTime: 'almoco' });
 
   useEffect(() => {
-    mealApi.list().then((r) => setPlans(r.data)).catch(() => {});
+    mealApi.list()
+      .then((r) => { if (r.data.length) setMeals(r.data); })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
   }, []);
+
+  const isVirgin = loaded && meals.length === 0;
 
   const totalCal = meals.flatMap((m) => m.items || []).reduce((s, i) => s + (i.calories || 0), 0);
   const totalProt = meals.flatMap((m) => m.items || []).reduce((s, i) => s + (i.protein_g || 0), 0);
@@ -208,9 +213,29 @@ export default function MealPlan() {
           </div>
 
           {/* Meals */}
-          {meals.map((meal) => (
-            <MealSection key={meal.id} meal={meal} />
-          ))}
+          {isVirgin ? (
+            <div className="flex flex-col items-center justify-center py-14 gap-4 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-surface-2 flex items-center justify-center">
+                <Utensils size={26} className="text-white/20" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white/60">Plano alimentar vazio</p>
+                <p className="text-xs text-white/30 mt-1 max-w-[240px] mx-auto leading-relaxed">
+                  Adicione suas refeições para acompanhar macros, calorias e timing nutricional ao longo do dia.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowModal(true)}
+                className="inline-flex items-center gap-2 text-xs font-bold text-primary hover:opacity-80 transition-opacity"
+              >
+                <Plus size={13} /> Adicionar primeira refeição
+              </button>
+            </div>
+          ) : (
+            meals.map((meal) => (
+              <MealSection key={meal.id} meal={meal} />
+            ))
+          )}
         </div>
       </div>
 

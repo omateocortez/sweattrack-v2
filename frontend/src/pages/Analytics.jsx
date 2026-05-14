@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { Heart, Zap, TrendingUp, Clock, Download } from 'lucide-react';
 import { analyticsApi } from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
 import AppLayout from '../components/layout/AppLayout';
 import Header from '../components/layout/Header';
 import Card from '../components/ui/Card';
@@ -52,18 +53,25 @@ function CustomTooltip({ active, payload, label }) {
 
 export default function Analytics() {
   const toast = useToast();
+  const { dark } = useTheme();
   const [analytics, setAnalytics] = useState(null);
-  const [trend, setTrend] = useState(MOCK_TREND);
+  const [trend, setTrend] = useState([]);
+  const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
 
   useEffect(() => {
-    analyticsApi.dashboard().then((r) => setAnalytics(r.data)).catch(() => {});
+    analyticsApi.dashboard()
+      .then((r) => setAnalytics(r.data))
+      .catch(() => {})
+      .finally(() => setAnalyticsLoaded(true));
     analyticsApi.hydrationTrend()
       .then((r) => { if (r.data.length) setTrend(r.data); })
       .catch(() => {});
   }, []);
 
-  const hydrationIndex = analytics?.hydrationIndex ?? 94;
-  const vo2max = analytics?.profile?.vo2max ?? 58.4;
+  const isVirgin = analyticsLoaded && !analytics;
+  const tickColor = dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)';
+  const hydrationIndex = analytics?.hydrationIndex ?? null;
+  const vo2max = analytics?.profile?.vo2max ?? null;
 
   return (
     <AppLayout>
@@ -91,6 +99,23 @@ export default function Analytics() {
             </p>
           </div>
 
+          {/* Virgin user banner */}
+          {isVirgin && (
+            <div className="bg-gradient-to-r from-primary/10 to-rose-900/5 border border-primary/20 rounded-2xl p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <TrendingUp size={18} className="text-primary" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm mb-1">Nenhuma sessão registrada ainda</p>
+                  <p className="text-xs text-white/50 leading-relaxed">
+                    As métricas reais — índice de hidratação, VO₂máx e tendências de sudorese — aparecem aqui após você completar sua primeira sessão de monitoramento.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Desktop grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
@@ -100,44 +125,62 @@ export default function Analytics() {
                 <p className="section-title">Índice de Hidratação</p>
                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse-slow" />
               </div>
-              <div className="flex items-end gap-2 mb-2">
-                <p className="text-6xl font-black tabular-nums">{hydrationIndex}</p>
-                <p className="text-2xl text-white/40 font-bold mb-1">%</p>
-              </div>
-              <p className="text-xs text-emerald-400 font-bold">Status: Excelente.</p>
-              <p className="text-xs text-white/40">Nível celular otimizado.</p>
-
-              {/* Mini radial */}
-              <div className="mt-3 h-24">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadialBarChart
-                    innerRadius="60%" outerRadius="100%"
-                    data={[{ name: 'Hidratação', value: hydrationIndex, fill: '#C41E3A' }]}
-                    startAngle={180} endAngle={0}
-                  >
-                    <RadialBar dataKey="value" background={{ fill: 'rgba(255,255,255,0.05)' }} cornerRadius={8} />
-                  </RadialBarChart>
-                </ResponsiveContainer>
-              </div>
+              {hydrationIndex !== null ? (
+                <>
+                  <div className="flex items-end gap-2 mb-2">
+                    <p className="text-6xl font-black tabular-nums">{hydrationIndex}</p>
+                    <p className="text-2xl text-white/40 font-bold mb-1">%</p>
+                  </div>
+                  <p className="text-xs text-emerald-400 font-bold">
+                    {hydrationIndex >= 76 ? 'Status: Excelente.' : hydrationIndex >= 52 ? 'Status: Moderado.' : 'Status: Baixo.'}
+                  </p>
+                  <p className="text-xs text-white/40">Baseado na cor da urina (WUTS).</p>
+                  <div className="mt-3 h-24">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadialBarChart
+                        innerRadius="60%" outerRadius="100%"
+                        data={[{ name: 'Hidratação', value: hydrationIndex, fill: '#C41E3A' }]}
+                        startAngle={180} endAngle={0}
+                      >
+                        <RadialBar dataKey="value" background={{ fill: 'rgba(255,255,255,0.05)' }} cornerRadius={8} />
+                      </RadialBarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              ) : (
+                <div className="h-32 flex items-center justify-center">
+                  <p className="text-4xl font-black text-white/20">—</p>
+                </div>
+              )}
             </Card>
 
             {/* VO2max + recovery */}
             <div className="space-y-4">
               <Card>
                 <p className="section-title">VO₂ Máx</p>
-                <div className="flex items-end gap-1">
-                  <p className="text-4xl font-black">{vo2max}</p>
-                  <p className="text-sm text-white/40 mb-1">ml/kg/min</p>
-                </div>
-                <p className="text-xs text-emerald-400 font-semibold">+2.1% este mês</p>
+                {vo2max !== null ? (
+                  <>
+                    <div className="flex items-end gap-1">
+                      <p className="text-4xl font-black">{vo2max}</p>
+                      <p className="text-sm text-white/40 mb-1">ml/kg/min</p>
+                    </div>
+                    <p className="text-xs text-emerald-400 font-semibold">Perfil do atleta</p>
+                  </>
+                ) : (
+                  <p className="text-3xl font-black text-white/20 mt-1">—</p>
+                )}
               </Card>
               <Card>
                 <p className="section-title">Próximo Treino</p>
-                <div className="flex items-center gap-2">
-                  <Clock size={20} className="text-primary" />
-                  <p className="text-4xl font-black">18<span className="text-xl text-white/40">h</span></p>
-                </div>
-                <p className="text-xs text-white/40 mt-1">Recuperação estimada</p>
+                {analytics?.lastSession ? (
+                  <div className="flex items-center gap-2">
+                    <Clock size={20} className="text-primary" />
+                    <p className="text-4xl font-black">18<span className="text-xl text-white/40">h</span></p>
+                    <p className="text-xs text-white/40 mt-1">Recuperação estimada</p>
+                  </div>
+                ) : (
+                  <p className="text-3xl font-black text-white/20 mt-1">—</p>
+                )}
               </Card>
             </div>
           </div>
@@ -145,36 +188,44 @@ export default function Analytics() {
           {/* Sweat rate trend */}
           <Card>
             <p className="section-title">Tendência de Sudorese — 7 dias</p>
-            <div className="h-40 mt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trend} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="sweatGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#C41E3A" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#C41E3A" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="day"
-                    tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }}
-                    axisLine={false} tickLine={false}
-                  />
-                  <YAxis hide />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area
-                    type="monotone" dataKey="sweat" name="Taxa L/h"
-                    stroke="#C41E3A" strokeWidth={2}
-                    fill="url(#sweatGrad)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            {trend.length === 0 ? (
+              <div className="h-40 flex items-center justify-center text-center">
+                <p className="text-xs text-white/30 max-w-[200px]">
+                  Os dados de sudorese aparecerão após suas primeiras sessões de monitoramento.
+                </p>
+              </div>
+            ) : (
+              <div className="h-40 mt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trend} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="sweatGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#C41E3A" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#C41E3A" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="day"
+                      tick={{ fill: tickColor, fontSize: 10 }}
+                      axisLine={false} tickLine={false}
+                    />
+                    <YAxis hide />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area
+                      type="monotone" dataKey="sweat" name="Taxa L/h"
+                      stroke="#C41E3A" strokeWidth={2}
+                      fill="url(#sweatGrad)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </Card>
 
           {/* Weekly chart */}
           <Card>
             <p className="section-title">Carga Metabólica — Semana</p>
-            <WeeklyChart />
+            <WeeklyChart weeklyData={analytics?.weeklyData} />
           </Card>
 
           {/* Clinical notes */}

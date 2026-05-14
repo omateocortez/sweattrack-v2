@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, LayoutGroup } from 'framer-motion';
 import {
   Home, Activity, BarChart3, User, Settings,
   Utensils, History, LogOut, Bell,
@@ -24,7 +24,7 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => { logout(); window.location.href = '/'; };
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-surface-1 border-r border-border h-screen sticky top-0 flex-shrink-0">
@@ -39,30 +39,33 @@ export default function Sidebar() {
       {/* Main nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto no-scrollbar">
         <p className="section-title px-2 mb-3">Menu</p>
-        {NAV.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to}>
-            {({ isActive }) => (
-              <motion.div
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors relative ${
-                  isActive
-                    ? 'text-white bg-primary/15'
-                    : 'text-white/50 hover:text-white hover:bg-surface-3'
-                }`}
-                whileHover={{ x: 2 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="sidebar-active"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full"
-                  />
-                )}
-                <Icon size={17} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-primary' : ''} />
-                {label}
-              </motion.div>
-            )}
-          </NavLink>
-        ))}
+        <LayoutGroup id="sidebar-nav">
+          {NAV.map(({ to, label, icon: Icon }) => (
+            <NavLink key={to} to={to}>
+              {({ isActive }) => (
+                <motion.div
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors relative ${
+                    isActive
+                      ? 'text-white bg-primary/15'
+                      : 'text-white/50 hover:text-white hover:bg-surface-3'
+                  }`}
+                  whileHover={{ x: 2 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-active"
+                      className="absolute left-0 inset-y-0 my-auto w-0.5 h-5 bg-primary rounded-r-full"
+                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                    />
+                  )}
+                  <Icon size={17} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-primary' : ''} />
+                  {label}
+                </motion.div>
+              )}
+            </NavLink>
+          ))}
+        </LayoutGroup>
       </nav>
 
       {/* Bottom nav */}

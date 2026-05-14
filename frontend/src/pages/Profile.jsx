@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Ruler, Weight, Activity, Calendar, Save } from 'lucide-react';
+import { User, Ruler, Weight, Activity, Calendar, Save, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi } from '../services/api';
 import AppLayout from '../components/layout/AppLayout';
@@ -11,8 +12,11 @@ import Input from '../components/ui/Input';
 import { useToast } from '../components/ui/Toast';
 
 export default function Profile() {
-  const { user, refetch } = useAuth();
+  const { user, refetch, logout } = useAuth();
+  const navigate = useNavigate();
   const toast = useToast();
+
+  const handleLogout = () => { logout(); window.location.href = '/'; };
   const [form, setForm] = useState({
     name: user?.name || '',
     clinicName: user?.clinicName || '',
@@ -83,6 +87,22 @@ export default function Profile() {
               )}
             </div>
           </motion.div>
+
+          {/* Mobile-only quick actions */}
+          <div className="flex gap-3 md:hidden">
+            <button
+              onClick={() => navigate('/settings')}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-surface-2 border border-border text-xs font-semibold text-white/60 hover:text-white transition-colors"
+            >
+              <Settings size={14} /> Configurações
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-surface-2 border border-border text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors"
+            >
+              <LogOut size={14} /> Sair da conta
+            </button>
+          </div>
 
           {/* Basic info */}
           <Card>

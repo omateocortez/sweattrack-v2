@@ -28,18 +28,23 @@ export default function Dashboard() {
   const toast = useToast();
   const [analytics, setAnalytics] = useState(null);
   const [sessions, setSessions] = useState([]);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [showNewSession, setShowNewSession] = useState(false);
   const [sessionForm, setSessionForm] = useState({ sessionType: 'training', intensity: 'moderada' });
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     analyticsApi.dashboard().then((r) => setAnalytics(r.data)).catch(() => {});
-    sessionApi.list().then((r) => setSessions(r.data)).catch(() => {});
+    sessionApi.list()
+      .then((r) => setSessions(r.data))
+      .catch(() => {})
+      .finally(() => setSessionsLoaded(true));
   }, []);
 
   const last = analytics?.lastSession;
   const sweatLabel = getSweatRateLabel(last?.sweat_rate_lh);
-  const hydrationIndex = analytics?.hydrationIndex ?? 82;
+  const hydrationIndex = analytics?.hydrationIndex ?? null;
+  const isVirgin = sessionsLoaded && sessions.length === 0;
 
   const handleCreateSession = async () => {
     setCreating(true);
@@ -91,34 +96,68 @@ export default function Dashboard() {
             </Button>
           </motion.div>
 
+          {/* Virgin onboarding banner */}
+          {isVirgin && (
+            <motion.div variants={fadeUp}>
+              <div className="bg-gradient-to-r from-primary/15 to-rose-900/5 border border-primary/30 rounded-2xl p-5">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <Zap size={22} className="text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-sm mb-1">Bem-vindo ao SweatTrack! 🎉</p>
+                    <p className="text-xs text-white/50 leading-relaxed mb-3">
+                      Crie sua primeira sessão de monitoramento para visualizar métricas reais de hidratação, taxa de suor e performance atlética.
+                    </p>
+                    <button
+                      onClick={() => setShowNewSession(true)}
+                      className="inline-flex items-center gap-2 text-xs font-bold text-primary hover:opacity-80 transition-opacity"
+                    >
+                      <Plus size={13} /> Criar primeira sessão
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Hydration card */}
           <motion.div variants={fadeUp}>
             <Card glow className="relative overflow-hidden">
               <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
               <div className="flex items-center justify-between mb-1">
                 <p className="section-title">Status de Hidratação</p>
-                <Badge variant="otimo">ÓTIMO</Badge>
+                {hydrationIndex !== null && <Badge variant="otimo">ÓTIMO</Badge>}
               </div>
               <div className="flex items-center gap-6">
-                <HydrationGauge value={hydrationIndex} size={140} />
+                {hydrationIndex !== null ? (
+                  <HydrationGauge value={hydrationIndex} size={140} />
+                ) : (
+                  <div className="w-[140px] h-[140px] flex items-center justify-center flex-shrink-0">
+                    <div className="text-center">
+                      <Droplets size={32} className="text-white/20 mx-auto mb-1" />
+                      <p className="text-[10px] text-white/30">Sem dados</p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex-1 space-y-3">
                   <StatRow
                     icon={<Zap size={14} className="text-amber-400" />}
                     label="Taxa de Suor"
                     value={last?.sweat_rate_lh ? `${last.sweat_rate_lh} L/h` : '—'}
-                    sub={sweatLabel.label}
+                    sub={last?.sweat_rate_lh ? sweatLabel.label : undefined}
                     subColor={sweatLabel.color}
                   />
                   <StatRow
                     icon={<Droplets size={14} className="text-sky-400" />}
                     label="Sódio"
-                    value={last?.sodium_loss_mg ? `${last.sodium_loss_mg} mg/L` : '850 mg/L'}
+                    value={last?.sodium_loss_mg ? `${last.sodium_loss_mg} mg/L` : '—'}
                   />
                   <StatRow
                     icon={<Thermometer size={14} className="text-rose-400" />}
                     label="Temperatura"
-                    value={last?.internal_temp ? `${last.internal_temp}°C` : '37.2°C'}
-                    sub={last?.internal_temp > 38.5 ? 'ALERTA' : 'Normal'}
+                    value={last?.internal_temp ? `${last.internal_temp}°C` : '—'}
+                    sub={last?.internal_temp ? (last.internal_temp > 38.5 ? 'ALERTA' : 'Normal') : undefined}
                     subColor={last?.internal_temp > 38.5 ? 'text-rose-400' : 'text-emerald-400'}
                   />
                 </div>
@@ -163,14 +202,24 @@ export default function Dashboard() {
             <Card>
               <div className="flex items-center justify-between mb-3">
                 <p className="section-title">Carga Metabólica — Semana</p>
-                <button
-                  onClick={() => navigate('/analytics')}
-                  className="text-xs text-primary font-semibold flex items-center gap-1 hover:opacity-80"
-                >
-                  Ver tudo <ChevronRight size={12} />
-                </button>
+                {!isVirgin && (
+                  <button
+                    onClick={() => navigate('/analytics')}
+                    className="text-xs text-primary font-semibold flex items-center gap-1 hover:opacity-80"
+                  >
+                    Ver tudo <ChevronRight size={12} />
+                  </button>
+                )}
               </div>
-              <WeeklyChart />
+              {isVirgin ? (
+                <div className="h-28 flex items-center justify-center">
+                  <p className="text-xs text-white/25 text-center max-w-[180px]">
+                    A carga metabólica semanal aparece após sua primeira sessão
+                  </p>
+                </div>
+              ) : (
+                <WeeklyChart weeklyData={analytics?.weeklyData} />
+              )}
             </Card>
           </motion.div>
 
@@ -299,13 +348,18 @@ function QuickCard({ icon, label, onClick }) {
 
 function EmptyState({ onNew }) {
   return (
-    <div className="flex flex-col items-center justify-center py-10 gap-3">
-      <div className="w-14 h-14 rounded-full bg-surface-2 flex items-center justify-center">
-        <AlertCircle size={24} className="text-white/20" />
+    <div className="flex flex-col items-center justify-center py-10 gap-4 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-surface-2 flex items-center justify-center">
+        <AlertCircle size={26} className="text-white/20" />
       </div>
-      <p className="text-sm text-white/30 font-medium">Nenhuma sessão registrada ainda</p>
-      <Button variant="outline" size="sm" onClick={onNew}>
-        <Plus size={14} /> Criar primeira sessão
+      <div>
+        <p className="text-sm font-semibold text-white/60">Nenhuma sessão registrada</p>
+        <p className="text-xs text-white/30 mt-1 max-w-[220px] mx-auto leading-relaxed">
+          Registre seu primeiro treino para acompanhar hidratação e desempenho em tempo real.
+        </p>
+      </div>
+      <Button variant="primary" size="sm" onClick={onNew} icon={<Plus size={14} />}>
+        Criar primeira sessão
       </Button>
     </div>
   );

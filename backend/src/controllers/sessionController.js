@@ -8,7 +8,7 @@ function calcSweatMetrics({ preWeight, postWeight, fluidIntakeMl, durationMin })
   const totalSweatLiters = weightLossKg + fluidIntakeLiters;
   const sweatRateLh = durationMin > 0 ? (totalSweatLiters / (durationMin / 60)) : 0;
   const hydricDeficitMl = Math.round(weightLossKg * 1000);
-  const sodiumLossMg = Math.round(totalSweatLiters * 1000 * 50); // ~50mg/100ml avg
+  const sodiumLossMg = Math.round(totalSweatLiters * 1150); // ~50 mmol/L × 23 mg/mmol ≈ 1150 mg/L (ABNE 2025)
   return {
     sweatRateLh: parseFloat(sweatRateLh.toFixed(2)),
     hydricDeficitMl,

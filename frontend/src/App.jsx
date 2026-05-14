@@ -13,6 +13,8 @@ import PostSession     from './pages/PostSession';
 import Analytics       from './pages/Analytics';
 import MealPlan        from './pages/MealPlan';
 import History         from './pages/History';
+import Monitor         from './pages/Monitor';
+import Notifications   from './pages/Notifications';
 import Profile         from './pages/Profile';
 import Settings        from './pages/Settings';
 
@@ -46,10 +48,11 @@ export default function App() {
         <Route path="/pre-session/:id" element={<RequireAuth><PreSession /></RequireAuth>} />
         <Route path="/active/:id"      element={<RequireAuth><ActiveMonitoring /></RequireAuth>} />
         <Route path="/post-session/:id" element={<RequireAuth><PostSession /></RequireAuth>} />
-        <Route path="/monitor"        element={<RequireAuth><Dashboard /></RequireAuth>} />
+        <Route path="/monitor"        element={<RequireAuth><Monitor /></RequireAuth>} />
         <Route path="/analytics"      element={<RequireAuth><Analytics /></RequireAuth>} />
         <Route path="/meal-plan"      element={<RequireAuth><MealPlan /></RequireAuth>} />
         <Route path="/history"        element={<RequireAuth><History /></RequireAuth>} />
+        <Route path="/notifications"  element={<RequireAuth><Notifications /></RequireAuth>} />
         <Route path="/profile"        element={<RequireAuth><Profile /></RequireAuth>} />
         <Route path="/settings"       element={<RequireAuth><Settings /></RequireAuth>} />
 

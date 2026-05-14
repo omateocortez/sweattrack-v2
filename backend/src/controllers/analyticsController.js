@@ -34,13 +34,17 @@ exports.getDashboard = async (req, res) => {
       [userId]
     );
 
-    // Mock hydration index based on last urine color
+    // Hydration index from WUTS urine color scale (Quaresma et al. 2025 ABNE)
+    // Formula: 100 - (urineColor - 1) × 12, clamped [20, 100]
+    // Only computed when the user has at least one completed session
     const [lastHydration] = await db.query(
       `SELECT urine_color FROM sessions WHERE user_id = ? AND urine_color IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
       [userId]
     );
-    const urineColor = lastHydration[0]?.urine_color || 3;
-    const hydrationIndex = Math.max(20, Math.min(100, Math.round(100 - (urineColor - 1) * 12)));
+    const totalSessions = sessionsCount[0].total;
+    const hydrationIndex = (totalSessions > 0 && lastHydration[0]?.urine_color)
+      ? Math.max(20, Math.min(100, Math.round(100 - (lastHydration[0].urine_color - 1) * 12)))
+      : null;
 
     res.json({
       totalSessions: sessionsCount[0].total,
